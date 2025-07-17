@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prediction Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='stylepred.css') }}">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        window.onpageshow = function(event) {
+            if (event.persisted) {
+                window.location.reload();
+            }
+        };
+    </script>
+</head>
+<body>
+    <header class="navbar">
+        <div class="navbar-brand">
+            <a href="{{ url_for('index') }}">EpiSymp</a>
+        </div>
+        <nav class="navbar-nav">
+            <button class="nav-link tablinks" onclick="openCity(event, 'Home')" id="defaultOpen">Home</button>
+            <button class="nav-link tablinks" onclick="openCity(event, 'Search')">Search</button>
+            <button class="nav-link tablinks" onclick="openCity(event, 'Diagnosis')">Diagnosis</button>
+            <button class="nav-link tablinks" onclick="openCity(event, 'About')">About</button>
+        </nav>
+        <div class="navbar-right">
+            <div class="dropdown">
+                <button class="dropbtn">Alerts</button>
+                <div class="dropdown-content">
+                    <p id="alert" class="alert-content"></p>
+                </div>
+            </div>
+            <div class="dropdown">
+                <button class="dropbtn">Profile</button>
+                <div class="dropdown-content">
+                    <a href="{{ url_for('index') }}">Logout</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div id="popup" class="popup">
+        <div class="popup-content-wrapper">
+          <span class="popup-close">&times;</span>
+          <div id="popup-content"></div>
+        </div>
+    </div>
+
+    <main class="main-content">
+        <div id="Home" class="tabcontent">
+            <div class="dashboard-grid">
+                <div class="card full-width">
+                     <div class="home-header">
+                        <div id="chart"></div>
+                        <div class="stats-container">
+                            <div class="stat-card">
+                                <h4>User Engagement</h4>
+                                <p id="engage"></p>
+                            </div>
+                            <div class="stat-card">
+                                <h4>% Diagnosis Overall</h4>
+                                <p id="disease-perc">28%</p>
+                            </div>
+                             <div class="stat-card">
+                                <h4>Outbreaks Predicted</h4>
+                                <p>0</p>
+                            </div>
+                            <div class="stat-card">
+                                <h4>Model Status</h4>
+                                <div class="model-status">
+                                    <div class="status-circle"></div>
+                                    <span>Online</span>
+                                </div>
+                            </div>
+                            <div class="actions-container">
+                                <form method="POST" action="/run">
+                                    <input type="submit" value="Run Prediction">
+                                </form>
+                                <form method="POST" action="/create">
+                                    <input type="submit" value="Create Report">
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3 class="card-title">Chloropleth Map of Diagnosed Cases ({{condition}})</h3>
+                    <div id="map"></div>
+                </div>
+                <div class="card">
+                    <h3 class="card-title">Highest Disease Diagnosis Counts</h3>
+                    <div class="table-wrapper">
+                        <table id="myTable" class="data-table">
+                            {{ table_html | safe }}
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card full-width">
+                    <h3 class="card-title">Disease Diagnosis Trend</h3>
+                    <div id="lchart"></div>
+                </div>
+
+                <div class="card">
+                    <h3 class="card-title">Diagnosis Distribution by Suburb</h3>
+                    <div id="pchart"></div>
+                </div>
+                <div class="card">
+                    <h3 class="card-title">Potential Unknown Diseases</h3>
+                     <div class="table-wrapper">
+                        <table id="sympTable" class="data-table">
+                            {{ stable_html | safe }}
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+      
+        <div id="Search" class="tabcontent">
+            <div class="card">
+                <h3 class="card-title">Search Diagnosis Records</h3>
+                <form id="search-fom" class="search-form">
+                    <input type="text" name="query" id="query-input" placeholder="Enter disease to search..." required>
+                    <button type="submit">Search</button>
+                </form>
+                <div id="search-results" class="search-results-container"></div>
+            </div>
+        </div>
+      
+        <div id="Diagnosis" class="tabcontent">
+            <div class="card">
+                <h3 class="card-title">Process Undiagnosed Cases</h3>
+                <form method="POST" action="/diag">
+                    <input type="submit" value="View Undiagnosed Cases">
+                </form>
+                <div id="containerForPend" class="diagnosis-container"></div>
+            </div>
+            <div class="card">
+                <h3 class="card-title">Review Pending Symptom Diagnosis</h3>
+                <form method="POST" action="/review">
+                    <input type="submit" value="View Pending Reviews">
+                </form>
+                <div id="containerForRev" class="diagnosis-container"></div>
+            </div>
+        </div>
+
+        <div id="About" class="tabcontent">
+            <div class="card">
+                <h3 class="card-title">About EpiSymp</h3>
+                <p>A web-based symptom checker for epidemic surveillance is a powerful tool designed to assist individuals in self-assessing their symptoms and providing valuable data for monitoring and detecting potential epidemics. By leveraging the widespread use of the internet and advancements in artificial intelligence, such a system can help identify trends, track the spread of diseases, and provide early warnings to public health authorities.</p>
+                <br>
+                <h4>Contact Information</h4>
+                <p>
+                    Developer: +263 56545<br>
+                    Customer Support: +263 68898
+                </p>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <p>&copy; 2024 EpiSymp. All rights reserved.</p>
+    </footer>
+
+    <script src="{{ url_for('static', filename='scriptpred.js') }}"></script>
+    <script src="{{ url_for('static', filename='scriptsearch.js') }}"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
+
+    <script>
+        // Tab functionality
+        function openCity(evt, cityName) {
+            var i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("tabcontent");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+            tablinks = document.getElementsByClassName("tablinks");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
+            }
+            document.getElementById(cityName).style.display = "block";
+            evt.currentTarget.className += " active";
+        }
+        document.getElementById("defaultOpen").click();
+
+        // Leaflet Map Initialization
+        var map = L.map('map').setView([-20.1457, 28.5873], 11);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 19
+        }).addTo(map);
+
+        function getColor(d) {
+            return d > 1000 ? '#800026' :
+                   d > 500  ? '#BD0026' :
+                   d > 200  ? '#E31A1C' :
+                   d > 100  ? '#FC4E2A' :
+                   d > 50   ? '#FD8D3C' :
+                   d > 20   ? '#FEB24C' :
+                   d > 10   ? '#FED976' :
+                              '#FFEDA0';
+        }
+
+        function createChloropleth(response) {
+            L.geoJSON(response, {
+                style: function (feature) {
+                    return {
+                        fillColor: getColor(feature.properties.Number_of_Diagnosed),
+                        weight: 2,
+                        opacity: 1,
+                        color: 'white',
+                        dashArray: '3',
+                        fillOpacity: 0.7
+                    };
+                }
+            }).addTo(map);
+        }
+
+        var legend = L.control({position: 'bottomright'});
+        legend.onAdd = function (map) {
+            var div = L.DomUtil.create('div', 'info legend'),
+                grades = [0, 10, 20, 50, 100, 200, 500, 1000],
+                labels = [];
+            div.innerHTML += '<strong>Cases</strong><br>';
+            for (var i = 0; i < grades.length; i++) {
+                div.innerHTML +=
+                    '<i style="background:' + getColor(grades[i] + 1) + '"></i> ' +
+                    grades[i] + (grades[i + 1] ? '&ndash;' + grades[i + 1] + '<br>' : '+');
+            }
+            return div;
+        };
+        legend.addTo(map);
+
+        window.onload = function() {
+            var response = JSON.parse('{{ geodata | tojson | safe }}');
+            createChloropleth(response);
+        };
+    </script>
+      
+    <script>
+        // Popup and Form Submission Logic
+        var popContent = document.getElementById('popup-content');
+        var popup = document.getElementById("popup");
+
+        document.querySelector('form[action="/run"]').addEventListener('submit', function(event) {
+            event.preventDefault();
+            popContent.innerHTML = "<h2>Epidemic Predictor</h2><p>Running Prediction...</p>";
+            popup.style.display = "flex"; // Changed to flex for centering
+            fetch('/run')
+            .then(response => response.json())
+            .then(data => {
+                popContent.innerHTML += `<hr><h2>${data}</h2>`;
+            });
+        });
+
+        document.querySelector('form[action="/create"]').addEventListener('submit', function(event) {
+            event.preventDefault();
+            popContent.innerHTML = '<h2>Create Report</h2><div class="popup-form"><form method="POST" action="/report"><input type="text" name="disreport" placeholder="Enter Disease" required><br><input type="number" name="dayreport" placeholder="Enter Number of days" required><br><input type="submit" value="Create"></form></div>';
+            popup.style.display = "flex"; // Changed to flex for centering
+        });
+
+        document.querySelector(".popup-close").addEventListener("click", function() {
+            popup.style.display = "none";
+            popContent.innerHTML = "";
+        });
+
+        // Diagnosis logic
+        var diagcontainer = document.getElementById("containerForPend");
+        document.querySelector('form[action="/diag"]').addEventListener('submit', function(event) {
+            event.preventDefault();
+            if (diagcontainer.innerHTML === "" || diagcontainer.querySelector('p')) { // Check if empty or has a message
+                diagcontainer.innerHTML = "<p>Loading...</p>";
+                fetch('/diag')
+                .then(response => response.json())
+                .then(data => {
+                    diagcontainer.innerHTML = ""; // Clear loading message
+                    if (data.length === 0 || (data.length > 0 && data[0].Identifier === 0)) {
+                         diagcontainer.innerHTML = "<p>No undiagnosed cases found.</p>";
+                         return;
+                    }
+                    data.forEach(result => {
+                        var testItem = document.createElement("div");
+                        testItem.className = 'diagnosis-item';
+                        testItem.innerHTML = `<h4>Code: ${result.Code}</h4><p>Symptoms: ${result.Symptoms}</p><form class="diagnosis-form" onsubmit="event.preventDefault(); saveDiagnosis(${result.Identifier}, this);"><input type='text' name='Diagnosis-entry' required placeholder='Enter Diagnosis'><input type='submit' value='Save'></form>`;
+                        diagcontainer.appendChild(testItem);
+                    });
+                });
+            } else {
+                diagcontainer.innerHTML = "";
+            }
+        });
+
+        function saveDiagnosis(code, formElement){
+            var diagnose = formElement.querySelector('input[name="Diagnosis-entry"]').value;
+            fetch('/symp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ Code: code, Diagnose: diagnose })
+            }).then(() => {
+                 diagcontainer.innerHTML = "<p>Diagnosis submitted successfully. Refreshing list...</p>";
+                 setTimeout(() => { document.querySelector('form[action="/diag"] > input').click(); }, 1500);
+            }).catch(error => console.error('Error:', error));       
+        }
+
+        // Review logic
+        var revContainer = document.getElementById('containerForRev');
+        document.querySelector('form[action="/review"]').addEventListener('submit', function(event) {
+            event.preventDefault();
+            if (revContainer.innerHTML === "" || revContainer.querySelector('p')) { // Check if empty or has a message
+                revContainer.innerHTML = "<p>Loading...</p>";
+                fetch('/review')
+                .then(response => response.json())
+                .then(data => {
+                     revContainer.innerHTML = ""; // Clear loading message
+                     if (data.length === 0 || (data.length > 0 && data[0].Identifier === 0)) {
+                         revContainer.innerHTML = "<p>No items to review.</p>";
+                         return;
+                    }
+                    data.forEach(result => {
+                        var revItem = document.createElement("div");
+                        revItem.className = 'diagnosis-item';
+                        revItem.innerHTML = `<h4>Diagnosis: ${result.Disease}</h4><p>Symptoms: ${result.Symptoms}</p><form class="review-form" onsubmit="event.preventDefault()"><input type='button' value='Deny' onclick='denyDiagnosis(${result.Identifier})'><input type='button' value='Approve' onclick='approveDiagnosis(${result.Identifier})'></form>`;
+                        revContainer.appendChild(revItem);
+                    });
+                });
+            } else {
+                revContainer.innerHTML = "";
+            }
+        });
+
+        function denyDiagnosis(code){
+            fetch('/deny', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ Code: code })
+            }).then(() => {
+                revContainer.innerHTML = "<p>Diagnosis denied. Refreshing list...</p>";
+                setTimeout(() => { document.querySelector('form[action="/review"] > input').click(); }, 1500);
+            }).catch(error => console.error('Error:', error));
+        }
+
+        function approveDiagnosis(code){
+            fetch('/approve', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ Code: code })
+            }).then(() => {
+                 revContainer.innerHTML = "<p>Diagnosis approved. Refreshing list...</p>";
+                 setTimeout(() => { document.querySelector('form[action="/review"] > input').click(); }, 1500);
+            }).catch(error => console.error('Error:', error));
+        }
+    </script> 
+
+    <script>
+        // Chart rendering scripts
+        document.addEventListener('DOMContentLoaded', function () {
+            // Common Chart Options
+            const commonOptions = {
+                chart: {
+                    foreColor: '#ccc'
+                },
+                tooltip: {
+                    theme: 'dark'
+                },
+                xaxis: {
+                    labels: {
+                        style: {
+                            colors: '#ccc'
+                        }
+                    },
+                     axisBorder: {
+                        show: false
+                    },
+                    axisTicks: {
+                        show: false
+                    }
+                },
+                yaxis: {
+                    labels: {
+                        style: {
+                            colors: '#ccc'
+                        }
+                    }
+                },
+                 grid: {
+                    borderColor: '#404040',
+                    strokeDashArray: 4
+                },
+            };
+
+            // Main Bar Chart
+            var barData = {{ data|tojson }};
+            var barOptions = {
+                ...commonOptions,
+                series: [{ name: 'Diagnosed', data: barData.map(item => item[1]) }],
+                chart: { ...commonOptions.chart, type: 'bar', height: 450, toolbar: { show: false } },
+                plotOptions: { bar: { horizontal: true, borderRadius: 4, distributed: true } },
+                xaxis: { ...commonOptions.xaxis, categories: barData.map(item => item[0]) },
+                yaxis: { ...commonOptions.yaxis, reversed: true },
+                title: { text: 'Distribution of Common Cold Cases by Suburb', style: { fontSize: '18px', color: '#fff' } },
+                legend: { show: false }
+            };
+            var barChart = new ApexCharts(document.querySelector("#chart"), barOptions);
+            barChart.render();
+
+            // Line Chart
+            const lineData = {{ ldata|tojson }};
+            var lineOptions = {
+                ...commonOptions,
+                series: [{ name: 'Diagnosed', data: lineData.map(item => item[1]) }],
+                chart: { ...commonOptions.chart, type: 'area', height: 350, zoom: { enabled: false }, toolbar: { show: false } },
+                xaxis: { ...commonOptions.xaxis, categories: lineData.map(item => item[0]), type: 'datetime' },
+                title: { text: 'Diagnosed Cases Over The Last 7 Days', style: { fontSize: '18px', color: '#fff' } },
+                stroke: { curve: 'smooth', width: 2 },
+                fill: {
+                    type: "gradient",
+                    gradient: {
+                        shadeIntensity: 1,
+                        opacityFrom: 0.7,
+                        opacityTo: 0.1,
+                        stops: [0, 90, 100]
+                    }
+                },
+                dataLabels: { enabled: false }
+            };
+            var lineChart = new ApexCharts(document.getElementById('lchart'), lineOptions);
+            lineChart.render();
+
+            // Donut Chart
+            var donutData = {{ data|tojson }};
+            var donutOptions = {
+                ...commonOptions,
+                series: donutData.map(item => item[1]),
+                chart: { ...commonOptions.chart, type: 'donut', height: 350 },
+                labels: donutData.map(item => item[0]),
+                title: { text: 'Diagnosis Distribution', align: 'center', style: { fontSize: '18px', color: '#fff' } },
+                legend: { position: 'bottom' },
+                stroke: { colors: ['#212134'] },
+                dataLabels: {
+                    formatter(val, opts) {
+                        const name = opts.w.globals.labels[opts.seriesIndex]
+                        return [name, val.toFixed(1) + '%']
+                    }
+                }
+            };
+            var donutChart = new ApexCharts(document.getElementById('pchart'), donutOptions);
+            donutChart.render();
+
+            // Update Dynamic Text
+            const engageValue = {{ users | tojson }};
+            document.getElementById("engage").innerHTML = engageValue[0];
+            document.getElementById("disease-perc").innerHTML = engageValue[1];
+            
+            const alertValue = {{ alert_note | tojson }};
+            document.getElementById("alert").innerHTML = alertValue || "No new alerts.";
+        });
+    </script>
+</body>
+</html>

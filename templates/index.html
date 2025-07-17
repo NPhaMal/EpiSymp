@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EpiSymp - Modern Symptom Checker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+</head>
+<body>
+
+    <div id="popup" class="popup-overlay">
+        <div class="popup-content">
+            <h1>Welcome to EpiSymp</h1>
+            <p>Please select your suburb for a personalized experience.</p>
+            <form id="ward-data-form">
+                <div class="form-group">
+                    <label for="suburb-dropdown">Suburb:</label>
+                    <select id="suburb-dropdown" name="dropdown" required>
+                        <option value="" disabled selected>Select your suburb</option>
+                        <option value="1">Bradfield</option>
+                        <option value="2">CBD</option>
+                        <option value="3">Famona</option>
+                        <option value="4">Hillcrest</option>
+                        <option value="5">Malindela</option>
+                        <option value="6">Northend</option>
+                        <option value="7">Paddonhurst</option>
+                        <option value="8">Parkview</option>
+                        <option value="9">Suburbs</option>
+                        <option value="10">Sunnyside</option>
+                        <option value="11">Airport</option>
+                        <option value="13">Barbourfields</option>
+                        <option value="14">Glenville</option>
+                        <option value="16">Harrisvale</option>
+                        <option value="19">Kenilworth</option>
+                        <option value="23">Mzilikazi</option>
+                        <option value="33">Queenspark West</option>
+                        <option value="34">Richmond</option>
+                        <option value="43">Killarney</option>
+                        <option value="44">Kumalo</option>
+                        <option value="45">Mahatshula</option>
+                        <option value="49">Parklands</option>
+                        <option value="50">Queenspark East</option>
+                        <option value="54">Woodville</option>
+                        <option value="60">Fortunesgate</option>
+                        <option value="61">Ilanda</option>
+                        <option value="62">Hillside</option>
+                        <option value="68">Matsheumhlophe</option>
+                        <option value="77">Sunninghill</option>
+                        <option value="78">Waterford</option>
+                        <option value="82">Woodlands</option>
+                        <option value="83">Barham Green</option>
+                        <option value="84">Bellevue</option>
+                        <option value="88">Fourwinds</option>
+                        <option value="90">Montrose</option>
+                        <option value="92">Morningside</option>
+                        <option value="93">Newton</option>
+                        <option value="94">Newton West</option>
+                        <option value="97">Southwold</option>
+                        <option value="100">Cowdray Park</option>
+                        <option value="103">Makokoba</option>
+                        <option value="104">Sizinda</option>
+                        <option value="110">Matshobana</option>
+                        <option value="112">Nguboyenja</option>
+                        <option value="113">Entumbane</option>
+                        <option value="116">Mabuthweni</option>
+                        <option value="117">Mpopoma</option>
+                        <option value="120">Emakhandeni</option>
+                        <option value="122">Lobengula</option>
+                        <option value="124">Iminyela</option>
+                        <option value="129">Magwegwe</option>
+                        <option value="134">Gwabalanda</option>
+                        <option value="137">Luveve</option>
+                        <option value="144">Pumula</option>
+                        <option value="148">Pelandaba</option>
+                        <option value="158">Nkulumane</option>
+                        <option value="163">Nketa</option>
+                        <option value="173">Emganwini</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn">Submit</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                EpiSymp
+            </div>
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-link active" data-tab="Home"><i class="fas fa-home"></i> Home</a>
+                <a href="#" class="nav-link" data-tab="Education"><i class="fas fa-book-medical"></i> Education</a>
+                <a href="{{ url_for('start') }}" class="nav-epi"><i class="fas fa-chart-line"></i> Epidemiology</a>
+            </nav>
+            <footer class="sidebar-footer">
+                &copy; 2024 EpiSymp
+            </footer>
+        </aside>
+
+        <main class="main-content">
+            <div id="Home" class="tab-content active">
+                <div class="chat-container">
+                    <div class="chat-header">
+                        <h2>Symptom Checker</h2>
+                        <p>Your AI Health Assistant</p>
+                    </div>
+                    <div id="chat-messages" class="chat-messages">
+                        </div>
+                    <div class="chat-input-area">
+                        <input id="user-input" type="text" placeholder="Describe your symptoms...">
+                        <button id="send-btn"><i class="fas fa-paper-plane"></i></button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="Education" class="tab-content">
+                <div class="education-container">
+                    <header class="education-header">
+                        <h1>Disease Information Center</h1>
+                        <p>Enter a disease name to get more information.</p>
+                    </header>
+                    <form id="search-form" class="search-form">
+                        <input type="text" id="search-input" placeholder="e.g., Influenza, Malaria...">
+                        <button type="submit"><i class="fas fa-search"></i> Search</button>
+                    </form>
+                    <div id="search-results" class="search-results">
+                        </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

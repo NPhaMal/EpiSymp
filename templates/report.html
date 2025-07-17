@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PDF Report</title>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts@latest"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+
+        #rmap {
+            width: 100%;
+            height: 600px;
+            border: 1px solid black;
+            margin-bottom: 5px;
+        }
+
+        .info {
+            padding: 6px 8px;
+            font: 14px/16px Arial, Helvetica, sans-serif;
+            background: white;
+            background: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+            border-radius: 5px;
+        }
+        .info h4 {
+            margin: 0 0 5px;
+            color: #777;
+        }
+        .legend {
+            text-align: left;
+            line-height: 18px;
+            color: #555;
+        }
+        .legend i {
+            width: 18px;
+            height: 18px;
+            float: left;
+            margin-right: 8px;
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="text-align: center;">Report for {{disease}}</h1>
+    <h2 style="text-align: center;">Table reports</h2>
+    <h3 style="text-align: center;">Table of People infected with {{disease}} in each Suburb</h3>
+    <div id="suburb-table"></div>
+    <h3 style="text-align: center;">Table of daily total People infected with {{disease}} in last week</h3>
+    <div id="daily-table"></div>
+    <h2 style="text-align: center;">Graph reports</h2>
+    <div id="suburb-barchart"></div>
+    <div id="daily-linechart"></div>
+    <h2 style="text-align: center;">Chloropleth Map</h2>
+    <div id="rmap"></div>
+    <button id="exportBtn">Export PDF</button>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+
+    <script>
+        document.getElementById('exportBtn').addEventListener('click', function() {
+            window.print();
+        });
+
+        // Function to update map
+        function updateMap(mapdata){
+            var smap = L.map('rmap').setView([-20.1457, 28.5873], 11);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 18,
+            }).addTo(smap);
+
+            var geojson = mapdata;
+                
+            L.geoJSON(geojson, {
+                style: function (feature) {
+                    return {
+                        fillColor: getColor(feature.properties.Number_of_Diagnosed), // change property1 to the relevant property
+                        weight: 2,
+                        opacity: 1,
+                        color: 'white',
+                        dashArray: '3',
+                        fillOpacity: 0.7
+                    };
+                }
+            }).addTo(smap);
+
+            var legend = L.control({position: 'bottomright'});
+
+            legend.onAdd = function (map) {
+                var div = L.DomUtil.create('div', 'legend'),
+                    grades = [0, 10, 20, 50, 100, 200, 500, 1000],
+                    labels = [];
+
+                div.innerHTML += '<strong>Legend</strong><br>';
+                // loop through our density intervals and generate a label with a colored square for each interval
+                for (var i = 0; i < grades.length; i++) {
+                    div.innerHTML +=
+                        '<i style="background:' + getColor(grades[i] + 1) + '"></i> ' +
+                        grades[i] + (grades[i + 1] ? '&ndash;' + grades[i + 1] + '<br>' : '+');
+                }
+
+                return div;
+            };
+
+            legend.addTo(smap);
+        }
+
+        // get Chloropleth colors
+        function getColor(d) {
+            return d > 1000 ? '#800026' :
+                d > 500  ? '#BD0026' :
+                d > 200  ? '#E31A1C' :
+                d > 100  ? '#FC4E2A' :
+                d > 50   ? '#FD8D3C' :
+                d > 20   ? '#FEB24C' :
+                d > 10   ? '#FED976' :
+                            '#FFEDA0';
+        }
+
+        function updateTable(data, x) {
+            const tableContainer = document.getElementById(x);
+            const table = document.createElement('table');
+            table.setAttribute('id', 'dataTable');
+            const thead = document.createElement('thead');
+            const tbody = document.createElement('tbody');
+
+            // Create table headings
+            const headings = Object.keys(data[0]);
+            const headingRow = document.createElement('tr');
+            headings.forEach(heading => {
+                const th = document.createElement('th');
+                th.textContent = heading;
+                headingRow.appendChild(th);
+            });
+            thead.appendChild(headingRow);
+
+            // Populate table body
+            data.forEach(rowData => {
+                const row = document.createElement('tr');
+                headings.forEach(heading => {
+                    const td = document.createElement('td');
+                    td.textContent = rowData[heading];
+                    row.appendChild(td);
+                });
+                tbody.appendChild(row);
+            });
+
+            table.appendChild(thead);
+            table.appendChild(tbody);
+            tableContainer.appendChild(table);
+        }
+
+        function updateChart(graphdata, gtitle, bId){
+            var chartData = graphdata;
+            var categories = chartData.map(function (item) {
+                return item[0];
+            });
+            var values = chartData.map(function (item) {
+                return item[1];
+            });
+
+            var options = {
+                title: {
+                    text: 'Distribution of People Diagnosed with '+ gtitle + ' in each suburb',
+                    align: 'left',
+                    style: {
+                        fontSize:  '16px',
+                        fontWeight:  'bold',
+                        color: '#000000'
+                    }
+                },
+                chart: {
+                    type: 'bar',
+                    height: 680
+                },
+                series: [{
+                    name: 'Value',
+                    data: values
+                }],
+                xaxis: {
+                    categories: categories,
+                    labels: {
+                        style: {
+                            colors: '#000000' // Set the color of the x-axis labels
+                        }
+                    }
+                },
+                yaxis: {
+                    labels: {
+                        style: {
+                            colors: '#000000' // Set the color of the x-axis labels
+                        }
+                    }
+                }
+            };
+
+            var chart = new ApexCharts(document.querySelector("#"+bId), options);
+            chart.render();
+        }
+
+        function updateLChart(graphdata, gtitle, lId){
+            var chartData = graphdata;
+            var categories = chartData.map(function (item) {
+                return item[0];
+            });
+            var values = chartData.map(function (item) {
+                return item[1];
+            });
+
+            var options = {
+                title: {
+                    text: 'Distribution of People Diagnosed with '+ gtitle + ' daily',
+                    align: 'left',
+                    style: {
+                        fontSize:  '16px',
+                        fontWeight:  'bold',
+                        color: '#000000'
+                    }
+                },
+                chart: {
+                    type: 'area',
+                    height: 300
+                },
+                series: [{
+                    name: 'Value',
+                    data: values
+                }],
+                xaxis: {
+                    categories: categories,
+                    labels: {
+                        style: {
+                            colors: '#000000' // Set the color of the x-axis labels
+                        }
+                    }
+                },
+                yaxis: {
+                    min: 0,
+                    labels: {
+                        style: {
+                            colors: '#000000' // Set the color of the x-axis labels
+                        }
+                    }
+                },
+                stroke: {
+                    curve: 'smooth',
+                }
+            };
+
+            var chart = new ApexCharts(document.querySelector("#"+lId), options);
+            chart.render();
+        }
+
+        window.onload = function() {
+            var xId = 'suburb-table'
+            var dId = 'daily-table'
+            var bId = 'suburb-barchart'
+            var lId = "daily-linechart"
+            var data = JSON.parse('{{ data | tojson | safe }}');
+            updateTable(data.tableData, xId);
+            updateTable(data.dateTable, dId);
+            updateChart(data.barData, data.graphTitle, bId);
+            updateLChart(data.lineData, data.graphTitle, lId);
+            updateMap(data.repMap);
+        };
+    </script>
+</body>
+</html>
